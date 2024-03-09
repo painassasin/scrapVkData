@@ -16,6 +16,8 @@ class Image(BaseModel):
     @classmethod
     def from_link_and_header(cls, link: str, header: str) -> 'Image':
         result = date_pattern.search(header)
+        if not result:
+            raise ValueError(f'Failed to parse date from header: {header}')
 
         result_dict = result.groupdict()
         return cls(
