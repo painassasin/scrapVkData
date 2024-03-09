@@ -4,8 +4,11 @@ from datetime import datetime
 import dateparser
 from pydantic import BaseModel
 
-date_pattern = re.compile(
-    r'at\s(?P<time>[\d\:]+\s(am|pm))\son\s(?P<date>[\d]{1,2}\s[\w]+\s[\d]{4})'
+DATE_PATTERNS = (
+    re.compile(
+        r'at\s(?P<time>[\d\:]+\s(am|pm))\son\s(?P<date>[\d]{1,2}\s[\w]+\s[\d]{4})'
+    ),
+    re.compile(r'(?P<date>\d{1,2}\s[а-я]+\s\d{4})\sв\s(?P<time>\d{1,2}:\d{2}:\d{2})'),
 )
 
 
@@ -15,7 +18,13 @@ class Image(BaseModel):
 
     @classmethod
     def from_link_and_header(cls, link: str, header: str) -> 'Image':
-        result = date_pattern.search(header)
+        result = None
+
+        for pattern in DATE_PATTERNS:
+            result = pattern.search(header)
+            if result:
+                break
+
         if not result:
             raise ValueError(f'Failed to parse date from header: {header}')
 

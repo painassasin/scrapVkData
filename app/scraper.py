@@ -32,7 +32,7 @@ def get_image_links(html_data: bytes) -> Generator[Image, None, None]:
     soup = BeautifulSoup(html_data, 'html.parser')
     divs_with_attachment = soup.find_all('div', class_=settings.DIV_ATTACHMENT_CLASS)
     for div in divs_with_attachment:
-        if div.get_text() != 'Photo':
+        if div.get_text() not in ('Photo', 'Фотография'):
             continue
         image_link = div.find_next_sibling(
             'a', class_=settings.LINK_ATTACHMENT_CLASS
