@@ -3,6 +3,7 @@ from datetime import datetime
 
 import dateparser
 from pydantic import BaseModel
+from typing_extensions import Self
 
 DATE_PATTERNS = (
     re.compile(
@@ -17,7 +18,7 @@ class Image(BaseModel):
     sent_at: datetime
 
     @classmethod
-    def from_link_and_header(cls, link: str, header: str) -> 'Image':
+    def from_link_and_header(cls, link: str, header: str) -> Self:
         result = None
 
         for pattern in DATE_PATTERNS:
@@ -25,11 +26,10 @@ class Image(BaseModel):
             if result:
                 break
 
-        if not result:
-            raise ValueError(f'Failed to parse date from header: {header}')
+        if result:
+            result_dict = result.groupdict()
+            send_at = dateparser.parse(f"{result_dict['date']} {result_dict['time']}")
+            if send_at:
+                return cls(link=link, sent_at=send_at)
 
-        result_dict = result.groupdict()
-        return cls(
-            link=link,
-            sent_at=dateparser.parse(f"{result_dict['date']} {result_dict['time']}"),
-        )
+        raise ValueError(f'Failed to parse date from header: {header}')

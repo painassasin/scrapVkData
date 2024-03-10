@@ -19,7 +19,7 @@ from app.schemas import Image
 
 @contextmanager
 def open_html(path: Path) -> Generator[bytes, None, None]:
-    with open(path, 'rb') as file:
+    with path.open('rb') as file:
         yield file.read()
 
 
@@ -49,7 +49,7 @@ def return_none(*_args: Any, **_kwargs: Any) -> None:
 
 
 @retry(stop=stop_after_attempt(3), reraise=False, retry_error_callback=return_none)
-def save_image(image: Image, path_to_save: str) -> None:
+def save_image(image: Image, path_to_save: Path) -> None:
     try:
         r = requests.get(image.link, stream=True)
     except Exception as exc:
@@ -58,7 +58,7 @@ def save_image(image: Image, path_to_save: str) -> None:
     else:
         if r.status_code == HTTPStatus.OK:
             typer.echo(f'Saving {path_to_save}')
-            with open(path_to_save, 'wb') as f:
+            with path_to_save.open('wb') as f:
                 for chunk in r.iter_content(1024):
                     f.write(chunk)
 
@@ -67,7 +67,7 @@ def save_image(image: Image, path_to_save: str) -> None:
             raise TryAgain
 
 
-def update_file_metadata(image: Image, path: str) -> None:
+def update_file_metadata(image: Image, path: Path) -> None:
     exif_dict = piexif.load(path)
     piexif.remove(path)
     new_date = image.sent_at.strftime('%Y:%m:%d %H:%M:%S')
