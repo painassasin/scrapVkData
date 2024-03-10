@@ -6,9 +6,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 DATE_PATTERNS = (
-    re.compile(
-        r'at\s(?P<time>[\d\:]+\s(am|pm))\son\s(?P<date>[\d]{1,2}\s[\w]+\s[\d]{4})'
-    ),
+    re.compile(r'at\s(?P<time>[\d\:]+\s(am|pm))\son\s(?P<date>[\d]{1,2}\s[\w]+\s[\d]{4})'),
     re.compile(r'(?P<date>\d{1,2}\s[а-я]+\s\d{4})\sв\s(?P<time>\d{1,2}:\d{2}:\d{2})'),
 )
 

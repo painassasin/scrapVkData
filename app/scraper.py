@@ -34,12 +34,8 @@ def get_image_links(html_data: bytes) -> Generator[Image, None, None]:
     for div in divs_with_attachment:
         if div.get_text() not in ('Photo', 'Фотография'):
             continue
-        image_link = div.find_next_sibling(
-            'a', class_=settings.LINK_ATTACHMENT_CLASS
-        ).get_text()
-        image_header = div.find_previous(
-            'div', class_=settings.MESSAGE_HEADER_CLASS
-        ).get_text()
+        image_link = div.find_next_sibling('a', class_=settings.LINK_ATTACHMENT_CLASS).get_text()
+        image_header = div.find_previous('div', class_=settings.MESSAGE_HEADER_CLASS).get_text()
 
         yield Image.from_link_and_header(image_link, image_header)
 
@@ -83,9 +79,7 @@ def get_images_from_messages(html_file_path: Path) -> Generator[Image, None, Non
         yield from get_image_links(data)
 
 
-def get_conversation_id_and_link(
-    messages_dir: Path,
-) -> Generator[tuple[str, Image], None, None]:
+def get_conversation_id_and_link(messages_dir: Path) -> Generator[tuple[str, Image], None, None]:
     for html_file_path in get_html_files_path(messages_dir):
         if 'index-messages.html' in html_file_path.parts:
             continue
