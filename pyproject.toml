@@ -8,24 +8,39 @@ authors = ["mikkegn <michail_gg@mail.ru>"]
 python = "^3.9"
 tenacity = "^8.0.1"
 beautifulsoup4 = "^4.10.0"
-typer = "^0.4.0"
+typer = "^0.9.0"
 requests = "^2.27.1"
 dateparser = "^1.1.0"
-pydantic = "^1.9.0"
+pydantic = "^2.6.1"
 piexif = "^1.1.3"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.2"
-pytest-cov = "^2.11.1"
-autoflake = "^1.4"
+pytest = "^8.1.1"
+pytest-cov = "^4.1.0"
+autoflake = "^1.7"
 isort = "^5.7.0"
 unify = "^0.5"
-flake8 = "^3.8.4"
+flake8 = "^4.0.1"
 pylint = "^2.7.1"
-mypy = "^0.812"
+mypy = "^1.9.0"
 pytest-deadfixtures = "^2.2.1"
-black = "^22.1.0"
+black = "^24.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+target-version = ['py39']
+skip-string-normalization = true
+skip-magic-trailing-comma = true
+line-length = 100
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | messages
+  | out
+)/
+'''

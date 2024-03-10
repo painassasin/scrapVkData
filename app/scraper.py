@@ -1,4 +1,3 @@
-import os
 import re
 import time
 import uuid
@@ -14,35 +13,29 @@ import typer
 from bs4 import BeautifulSoup
 from tenacity import TryAgain, retry, stop_after_attempt
 
+from app import settings
 from app.schemas import Image
-
-HTML_FILES_PATTERN = '**/*.html'
-OUT_DIR = 'out'
-IN_DIR = 'messages'
-DIV_ATTACHMENT_CLASS = 'attachment__description'
-LINK_ATTACHMENT_CLASS = 'attachment__link'
-MESSAGE_HEADER_CLASS = 'message__header'
 
 
 @contextmanager
 def open_html(path: Path) -> Generator[bytes, None, None]:
-    with open(path, 'rb') as file:
+    with path.open('rb') as file:
         yield file.read()
 
 
-def get_html_files_path(directory_path: str) -> Generator[Path, None, None]:
-    for path in Path(directory_path).glob(HTML_FILES_PATTERN):
+def get_html_files_path(directory_path: Path) -> Generator[Path, None, None]:
+    for path in directory_path.glob(settings.HTML_FILES_PATTERN):
         yield path
 
 
 def get_image_links(html_data: bytes) -> Generator[Image, None, None]:
     soup = BeautifulSoup(html_data, 'html.parser')
-    divs_with_attachment = soup.find_all('div', class_=DIV_ATTACHMENT_CLASS)
+    divs_with_attachment = soup.find_all('div', class_=settings.DIV_ATTACHMENT_CLASS)
     for div in divs_with_attachment:
-        if div.get_text() != 'Photo':
+        if div.get_text() not in ('Photo', 'Фотография'):
             continue
-        image_link = div.find_next_sibling('a', class_=LINK_ATTACHMENT_CLASS).get_text()
-        image_header = div.find_previous('div', class_=MESSAGE_HEADER_CLASS).get_text()
+        image_link = div.find_next_sibling('a', class_=settings.LINK_ATTACHMENT_CLASS).get_text()
+        image_header = div.find_previous('div', class_=settings.MESSAGE_HEADER_CLASS).get_text()
 
         yield Image.from_link_and_header(image_link, image_header)
 
@@ -52,7 +45,7 @@ def return_none(*_args: Any, **_kwargs: Any) -> None:
 
 
 @retry(stop=stop_after_attempt(3), reraise=False, retry_error_callback=return_none)
-def save_image(image: Image, path_to_save: str) -> None:
+def save_image(image: Image, path_to_save: Path) -> None:
     try:
         r = requests.get(image.link, stream=True)
     except Exception as exc:
@@ -61,7 +54,7 @@ def save_image(image: Image, path_to_save: str) -> None:
     else:
         if r.status_code == HTTPStatus.OK:
             typer.echo(f'Saving {path_to_save}')
-            with open(path_to_save, 'wb') as f:
+            with path_to_save.open('wb') as f:
                 for chunk in r.iter_content(1024):
                     f.write(chunk)
 
@@ -70,7 +63,7 @@ def save_image(image: Image, path_to_save: str) -> None:
             raise TryAgain
 
 
-def update_file_metadata(image: Image, path: str) -> None:
+def update_file_metadata(image: Image, path: Path) -> None:
     exif_dict = piexif.load(path)
     piexif.remove(path)
     new_date = image.sent_at.strftime('%Y:%m:%d %H:%M:%S')
@@ -86,9 +79,7 @@ def get_images_from_messages(html_file_path: Path) -> Generator[Image, None, Non
         yield from get_image_links(data)
 
 
-def get_conversation_id_and_link(
-    messages_dir: str,
-) -> Generator[tuple[str, Image], None, None]:
+def get_conversation_id_and_link(messages_dir: Path) -> Generator[tuple[str, Image], None, None]:
     for html_file_path in get_html_files_path(messages_dir):
         if 'index-messages.html' in html_file_path.parts:
             continue
@@ -103,10 +94,10 @@ def get_dir_name(name_by_conv: dict[str, str], conversation_id: str) -> str:
 
 
 def process_messages(
-    messages_dir: str = typer.Argument(
-        ..., help='Path to your messages directory in data copy'
+    messages_dir: Path = typer.Argument(
+        settings.IN_DIR, help='Path to your messages directory in data copy'
     ),
-    out_dir: str = typer.Argument(OUT_DIR, help='Path to save out data'),
+    out_dir: Path = typer.Argument(settings.OUT_DIR, help='Path to save out data'),
     threads: int = typer.Option(16, help='Number of parallel threads to save data'),
 ) -> None:
     start_time = time.monotonic()
@@ -123,17 +114,15 @@ def process_messages(
 
             dir_name = get_dir_name(name_by_conv, conversation_id)
 
-            if not os.path.exists(f'{out_dir}/{dir_name}'):
+            if not out_dir.joinpath(dir_name).exists():
                 if len(dir_name) > 100:
                     dir_name = dir_name[:100]
-                os.mkdir(f'{out_dir}/{dir_name}')
+                out_dir.joinpath(dir_name).mkdir(parents=True)
 
-            future = executor.submit(
-                save_image,
-                image,
-                path_to_save=f'{out_dir}/{dir_name}/'
-                f'{image.sent_at.strftime("%Y-%m-%d_%H-%M-%S")}_{index}.jpg',
+            path_to_save = out_dir.joinpath(
+                dir_name, f'{image.sent_at.strftime("%Y-%m-%d_%H-%M-%S")}_{index}.jpg'
             )
+            future = executor.submit(save_image, image, path_to_save=path_to_save)
             futures.append(future)
             index += 1
 
@@ -143,11 +132,11 @@ def process_messages(
     typer.echo(f'Elapsed {time.monotonic() - start_time} sec')
 
 
-def get_name_by_conversation_map(messages_dir: str) -> dict[str, str]:
+def get_name_by_conversation_map(messages_dir: Path) -> dict[str, str]:
     pattern = re.compile(r'[-+]?[\d]+/messages.*')
     mapping = {}
     uniq_names = set()
-    with open_html(Path(f'{messages_dir}/index-messages.html')) as data:
+    with open_html(messages_dir.joinpath('index-messages.html')) as data:
         soup = BeautifulSoup(data, 'html.parser')
         for link in soup.find_all('a', href=True):
             if not pattern.match(link['href']):
