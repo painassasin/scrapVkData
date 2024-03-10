@@ -24,3 +24,7 @@ format:
 
 .PHONY: ci
 ci:	lint test
+
+.PHONY: run
+run: messages
+	python3 -m app.scraper

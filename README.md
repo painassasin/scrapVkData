@@ -18,7 +18,7 @@ where
 ```
   MESSAGES_DIR  Path to your messages directory in data copy  [required]
   [OUT_DIR]     Path to save out data  [default: out]
-  
+
   --threads INTEGER     Number of parallel threads to save data  [default: 4]
 ```
 
@@ -28,4 +28,4 @@ You can use docker to run application
 
 1. Build docker image by `docker-compose build`
 2. Copy directory `messages` to root application directory
-3. Run `docker-compose run --rm app python app/scraper.py messages`
+3. Run `docker-compose run --rm app make run`
