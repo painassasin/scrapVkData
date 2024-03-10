@@ -128,11 +128,7 @@ def process_messages(
             path_to_save = out_dir.joinpath(
                 dir_name, f'{image.sent_at.strftime("%Y-%m-%d_%H-%M-%S")}_{index}.jpg'
             )
-            future = executor.submit(
-                save_image,
-                image,
-                path_to_save=path_to_save,
-            )
+            future = executor.submit(save_image, image, path_to_save=path_to_save)
             futures.append(future)
             index += 1
 
